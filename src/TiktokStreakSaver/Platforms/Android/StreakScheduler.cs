@@ -34,14 +34,15 @@ public static class StreakScheduler
         }
         else if (lastRun.HasValue)
         {
-            nextRunTime = lastRun.Value.AddMinutes(intervalMinutes);
+            nextRunTime = lastRun.Value.AddHours(intervalHours);
+            // If the calculated time is in the past, schedule for now + small delay
             if (nextRunTime < DateTime.Now)
                 nextRunTime = DateTime.Now.AddMinutes(1);
         }
         else
         {
-            nextRunTime = DateTime.Now.AddMinutes(intervalMinutes);
-            settingsService.SetScheduled(true);
+            // First run - schedule for interval from now
+            nextRunTime = DateTime.Now.AddHours(intervalHours);
         }
         ScheduleAt(context, nextRunTime);
     }
@@ -154,7 +155,7 @@ public static class StreakScheduler
     /// <summary>
     /// Run the service immediately. Returns false if automation is already running.
     /// </summary>
-    public static bool RunNow(Context context, bool isBurstMode = false)
+    public static bool RunNow(Context context)
     {
         if (StreakService.IsRunning)
             return false;
@@ -167,7 +168,6 @@ public static class StreakScheduler
         }
 
         var serviceIntent = new Intent(context, typeof(StreakService));
-        serviceIntent.PutExtra("IsBurstMode", isBurstMode);
 
         if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
             context.StartForegroundService(serviceIntent);

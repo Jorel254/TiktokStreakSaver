@@ -16,16 +16,9 @@ public class SettingsService
     private const string IsFixedScheduledKey = "is_fixed_scheduled";
     private const string RunHistoryKey = "run_history";
     private const string IntervalHoursKey = "interval_hours";
-    private const string IntervalMinutesKey = "interval_minutes";
     private const string FixedMinutesHoursKey = "fixed_minutes_hours";
     private const string FixedMinutesKey = "fixed_minutes";
     private const string SkipUnreachableUsersKey = "skip_unreachable_users";
-    private const string BurstMessageTextKey = "burst_message_text"; // Legacy single line
-    private const string BurstMessagesKey = "burst_messages_list";
-    private const string BurstLastRunKey = "burst_last_run";
-    private const string BurstLastFixedRunKey = "burst_last_fixed_run";
-    private const string IsBurstModeActiveKey = "is_burst_mode_active";
-    private const string BurstTargetUsernameKey = "burst_target_username";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -34,23 +27,17 @@ public class SettingsService
     };
 
     /// <summary>
-    /// Default message to send
+    /// Default message to send (kept from original; do NOT change to "Streak").
     /// </summary>
     public const string DefaultMessage = "Hey! Keeping our streak alive! \uD83D\uDD25";
 
     /// <summary>
-    /// Default interval in hours (legacy; <see cref="DefaultIntervalMinutes"/> is authoritative).
+    /// Default interval in hours.
     /// </summary>
     public const int DefaultIntervalHours = 23;
     public const int DefaultFixedMinutesHours = 9;
 
-    /// <summary>
-    /// Default time between automatic streak runs (23 hours).
-    /// </summary>
-    public const int DefaultIntervalMinutes = DefaultIntervalHours * 60;
-
     /// <summary>Minimum gap between scheduled runs (15 minutes).</summary>
-    public const int MinIntervalMinutes = 15;
     public const int MinFixedMinutes = 0;
 
     /// <summary>Maximum gap between scheduled runs (23h 59m — strictly under 24 hours).</summary>
@@ -124,63 +111,81 @@ public class SettingsService
         Preferences.Set(MessageTextKey, message);
     }
 
-    public string GetBurstMessageText()
+    // ── Randomized Normal Messages ──
+
+    private const string RandomizeNormalMessagesKey = "randomize_normal_messages";
+
+    /// <summary>
+    /// 50 built-in short streak messages for randomized normal-mode sends.
+    /// </summary>
+    public static readonly List<string> BuiltInStreakMessages = new()
     {
-        return Preferences.Get(BurstMessageTextKey, "Burst Message");
+        "Streak",
+        "streak",
+        "streakk",
+        "streaak",
+        "streaakkk",
+        "streaaak",
+        "strk",
+        "Strk",
+        "s",
+        "S",
+        "streaks",
+        "Streaks",
+        "streakss",
+        "streak lol",
+        "yo streak",
+        "yoo streak",
+        "yoo streakk",
+        "hey streak",
+        "hii streak",
+        "hi streak",
+        "heyy streak",
+        "streak hii",
+        "streak hi",
+        "streak yo",
+        "streak yoo",
+        "streakkk",
+        "strek",
+        "streek",
+        "streeek",
+        "streeeek",
+        "yo",
+        "yoo",
+        "yooo",
+        "hey",
+        "hii",
+        "heyy",
+        "heyyy",
+        "here",
+        "heree",
+        "strkeee",
+        "streak rn",
+        "quick streak",
+        "streakk lol",
+        "streak lmao",
+        "lol streak",
+        "streaaakk",
+        "streakkk lol",
+        "daily streak",
+        "streak streak",
+        "ayo streak"
+    };
+
+    /// <summary>
+    /// Get whether randomized built-in messages are enabled for normal mode
+    /// </summary>
+    public bool GetRandomizeNormalMessages()
+    {
+        return Preferences.Get(RandomizeNormalMessagesKey, false);
     }
 
-    public void SetBurstMessageText(string message)
+    /// <summary>
+    /// Set whether randomized built-in messages are enabled for normal mode
+    /// </summary>
+    public void SetRandomizeNormalMessages(bool enabled)
     {
-        Preferences.Set(BurstMessageTextKey, message);
-    }
-
-    /// <summary>Burst templates; migrates from legacy <see cref="BurstMessageTextKey"/> when empty.</summary>
-    public List<string> GetBurstMessages()
-    {
-        try
-        {
-            var json = Preferences.Get(BurstMessagesKey, string.Empty);
-            if (string.IsNullOrEmpty(json))
-            {
-                var legacy = Preferences.Get(BurstMessageTextKey, string.Empty);
-                if (!string.IsNullOrEmpty(legacy))
-                    return new List<string> { legacy };
-                return new List<string> { "Burst Message" };
-            }
-
-            return JsonSerializer.Deserialize<List<string>>(json, JsonOptions) ?? new List<string> { "Burst Message" };
-        }
-        catch
-        {
-            return new List<string> { "Burst Message" };
-        }
-    }
-
-    public void SetBurstMessages(List<string> messages)
-    {
-        if (messages == null || messages.Count == 0)
-            messages = new List<string> { "Burst Message" };
-        Preferences.Set(BurstMessagesKey, JsonSerializer.Serialize(messages, JsonOptions));
-    }
-
-    public bool IsBurstModeActive()
-    {
-        return Preferences.Get(IsBurstModeActiveKey, false);
-    }
-
-    public void SetBurstModeActive(bool active)
-    {
-        Preferences.Set(IsBurstModeActiveKey, active);
-    }
-
-    public string GetBurstTargetUsername()
-    {
-        return Preferences.Get(BurstTargetUsernameKey, string.Empty);
-    }
-
-    public void SetBurstTargetUsername(string username)
-    {
-        Preferences.Set(BurstTargetUsernameKey, username ?? string.Empty);
+        Preferences.Set(RandomizeNormalMessagesKey, enabled);
     }
 
     #endregion
@@ -188,26 +193,20 @@ public class SettingsService
     #region Scheduling
 
     /// <summary>
-    /// Interval between automatic runs, in minutes. Migrates legacy <c>interval_hours</c> on first read.
+    /// Interval between automatic runs, in hours (clamped to 1..23).
     /// </summary>
-    public int GetIntervalMinutes()
+    public int GetIntervalHours()
     {
-        if (Preferences.ContainsKey(IntervalMinutesKey))
-        {
-            var v = Preferences.Get(IntervalMinutesKey, DefaultIntervalMinutes);
-            return Math.Clamp(v, MinIntervalMinutes, MaxIntervalMinutes);
-        }
-
-        var legacyHours = Preferences.Get(IntervalHoursKey, DefaultIntervalHours);
-        var migrated = Math.Clamp(legacyHours * 60, MinIntervalMinutes, MaxIntervalMinutes);
-        SetIntervalMinutes(migrated);
-        return migrated;
+        var v = Preferences.Get(IntervalHoursKey, DefaultIntervalHours);
+        return Math.Clamp(v, 1, 23);
     }
 
-    public void SetIntervalMinutes(int minutes)
+    /// <summary>
+    /// Set the interval in hours (clamped to 1..23).
+    /// </summary>
+    public void SetIntervalHours(int hours)
     {
-        var v = Math.Clamp(minutes, MinIntervalMinutes, MaxIntervalMinutes);
-        Preferences.Set(IntervalMinutesKey, v);
+        Preferences.Set(IntervalHoursKey, Math.Clamp(hours, 1, 23));
     }
     public int GetFixedMinutes()
     {
@@ -249,27 +248,9 @@ public class SettingsService
         Preferences.Set(LastRunFixedKey, time.Ticks);
     }
 
-    public DateTime? GetBurstLastRunTime()
-    {
-        var ticks = Preferences.Get(BurstLastRunKey, 0L);
-        return ticks > 0 ? new DateTime(ticks) : null;
-    }
-
-    public void SetBurstLastRunTime(DateTime time)
-    {
-        Preferences.Set(BurstLastRunKey, time.Ticks);
-    }
-    public DateTime? GetBurstLastRunFixedTime()
-    {
-        var ticks = Preferences.Get(BurstLastFixedRunKey, 0L);
-        return ticks > 0 ? new DateTime(ticks) : null;
-    }
-
-    public void SetBurstLastRunFixedTime(DateTime time)
-    {
-        Preferences.Set(BurstLastFixedRunKey, time.Ticks);
-    }
-
+    /// <summary>
+    /// Default off (matches fork). Users opt in via the Profile toggle.
+    /// </summary>
     public bool IsScheduled()
     {
         return Preferences.Get(IsScheduledKey, false);
@@ -289,6 +270,9 @@ public class SettingsService
         Preferences.Set(IsFixedScheduledKey, scheduled);
     }
 
+    /// <summary>
+    /// Default ON (kept from original): a missing friend should not abort the whole run.
+    /// </summary>
     public bool GetSkipUnreachableUsers()
     {
         return Preferences.Get(SkipUnreachableUsersKey, true);
@@ -314,12 +298,11 @@ public class SettingsService
             return GetNextDailyFixedRun(GetFixedMinutes());
         }
         var lastRun = GetLastRunTime();
-        var intervalMinutes = GetIntervalMinutes();
+        var intervalHours = GetIntervalHours();
+
         if (lastRun.HasValue)
-        {
-            return lastRun.Value.AddMinutes(intervalMinutes);
-        }
-           
+            return lastRun.Value.AddHours(intervalHours);
+
         return DateTime.Now;
     }
 
