@@ -23,7 +23,7 @@ public static class StreakScheduler
     public static void ScheduleNextRun(Context context, bool isFixedSchedule)
     {
         var settingsService = new SettingsService();
-        var intervalMinutes = settingsService.GetIntervalMinutes();
+        var intervalHours = settingsService.GetIntervalHours();
         var fixedMinutes = settingsService.GetFixedMinutes();
         var lastRun = settingsService.GetLastRunTime();
         DateTime nextRunTime;

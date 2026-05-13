@@ -483,11 +483,6 @@
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray400}}" />
     </Style>
 
-    <Style x:Key="DataLabelMaxim" TargetType="Label">
-        <Setter Property="FontFamily" Value="InterRegular" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Purple}, Dark={StaticResource Purple}}" />
-    </Style>
 
     <Style x:Key="ValueLabel" TargetType="Label">
         <Setter Property="FontFamily" Value="InterMedium" />
@@ -530,12 +525,6 @@
         <Setter Property="Margin" Value="24,0,24,16"/>
         <Setter Property="HorizontalOptions" Value="Center"/>
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#CCFFFFFF, Dark=#CC1E1F23}"/>
-    </Style>
-    <Style x:Key="MaeterialButton" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource ButtonBlack}}"/>
-        <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="Padding" Value="12,6"/>
-        <Setter Property="FontSize" Value="13"/>
     </Style>
 
 </ResourceDictionary>

@@ -113,6 +113,16 @@
                                     VerticalOptions="Center"
                                     Toggled="OnScheduleToggled"/>
                         </Grid>
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="16">
+                            <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                                <Label Text="Background automation (fixed)" Style="{StaticResource ControlTitleLabel}"/>
+                                <Label Text="Keep streaks alive automatically" Style="{StaticResource DataLabel}" LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
+                            <Switch x:Name="ScheduleSwitchFixed"
+                                    Grid.Column="1"
+                                    VerticalOptions="Center"
+                                    Toggled="OnScheduleFixedToggled"/>
+                        </Grid>
 
                         <!-- Interval (hours-only) -->
                         <VerticalStackLayout Spacing="8">
@@ -140,6 +150,25 @@
                                          Value="23"
                                          VerticalOptions="Center"
                                          ValueChanged="OnIntervalHoursChanged"/>
+                            </Grid>
+                            <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="12">
+                                <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+                                    <Label Text="Run Fixed" Style="{StaticResource ControlTitleLabel}"/>
+                                    <Label x:Name="FixedTimeSummaryLabel"
+                                    Text="Every day "
+                                    Style="{StaticResource DataLabel}"
+                                    LineBreakMode="WordWrap"/>
+                                </VerticalStackLayout>
+                                <Label x:Name="FixedTimeValueLabel"
+                                    Grid.Column="1"
+                                    VerticalOptions="Center"
+                                    FontFamily="InterSemiBold"
+                                    FontSize="16"
+                                    MinimumWidthRequest="32"
+                                    HorizontalTextAlignment="Center"/>
+                                <VerticalStackLayout Grid.Column="2">
+                                    <TimePicker x:Name="timePicker" TimeSelected="timePicker_TimeSelected" />
+                                </VerticalStackLayout>
                             </Grid>
                         </VerticalStackLayout>
 

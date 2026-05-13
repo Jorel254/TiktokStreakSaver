@@ -42,6 +42,7 @@ public partial class ProfilePage : ContentPage
         DisplayNameEntry.Text = _sessionService.GetDisplayName();
 
         ScheduleSwitch.IsToggled = _settingsService.IsScheduled();
+        ScheduleSwitchFixed.IsToggled = _settingsService.IsFixedScheduled();
         SkipUnreachableSwitch.IsToggled = _settingsService.GetSkipUnreachableUsers();
         RandomizeMessagesSwitch.IsToggled = _settingsService.GetRandomizeNormalMessages();
 
@@ -158,9 +159,34 @@ public partial class ProfilePage : ContentPage
 #if ANDROID
         var context = Platform.CurrentActivity ?? Android.App.Application.Context;
         if (e.Value)
-            TiktokStreakSaver.Platforms.Android.StreakScheduler.ScheduleNextRun(context);
+        {
+            TiktokStreakSaver.Platforms.Android.StreakScheduler.CancelSchedule(context, true);
+            ScheduleSwitchFixed.IsToggled = false; // Ensure mutual exclusivity
+            TiktokStreakSaver.Platforms.Android.StreakScheduler.ScheduleNextRun(context, false);
+
+        }
         else
-            TiktokStreakSaver.Platforms.Android.StreakScheduler.CancelSchedule(context);
+        {
+            TiktokStreakSaver.Platforms.Android.StreakScheduler.CancelSchedule(context, false);
+        }
+#endif
+    }
+
+    private void OnScheduleFixedToggled(object? sender, ToggledEventArgs e)
+    {
+#if ANDROID
+        var context = Platform.CurrentActivity ?? Android.App.Application.Context;
+        if (e.Value)
+        {
+            TiktokStreakSaver.Platforms.Android.StreakScheduler.CancelSchedule(context, false);
+            ScheduleSwitch.IsToggled = false;
+            TiktokStreakSaver.Platforms.Android.StreakScheduler.ScheduleNextRun(context, true);
+        }
+        else
+        {
+            TiktokStreakSaver.Platforms.Android.StreakScheduler.CancelSchedule(context, true);
+        }
+
 #endif
     }
 
@@ -174,7 +200,7 @@ public partial class ProfilePage : ContentPage
         if (_settingsService.IsScheduled())
         {
             var ctx = Platform.CurrentActivity ?? Android.App.Application.Context;
-            TiktokStreakSaver.Platforms.Android.StreakScheduler.ScheduleNextRun(ctx);
+            TiktokStreakSaver.Platforms.Android.StreakScheduler.ScheduleNextRun(ctx,false);
         }
 #endif
     }
@@ -257,5 +283,37 @@ public partial class ProfilePage : ContentPage
             _sessionService.ClearSession();
             UpdateLoginButtonState(false);
         }
+    }
+    private void timePicker_TimeSelected(object sender, TimeChangedEventArgs e)
+    {
+        TimeSpan hour = timePicker.Time;
+        UpdateFixedSummaryLabel();
+        ApplyTimeFromTimePicker(hour);
+
+    }
+    private void UpdateFixedSummaryLabel()
+    {
+        var t = _settingsService.GetFixedMinutes();
+        var rem = t % (24 * 60);
+        var h = rem / 60;
+        var m = rem % 60;
+        FixedTimeSummaryLabel.Text = $"Every day at {h}h {m}m it will run automatically.";
+    }
+    private void ApplyTimeFromTimePicker(TimeSpan time)
+    {
+        var h = time.Hours;
+        var m = time.Minutes;
+        var total = h * 60 + m;
+        var clamped = Math.Clamp(total, SettingsService.MinFixedMinutes, SettingsService.MaxIntervalMinutes);
+        _settingsService.SetFixedMinutes(clamped);
+        UpdateFixedSummaryLabel();
+
+#if ANDROID
+        if (_settingsService.IsFixedScheduled())
+        {
+            var ctx = Platform.CurrentActivity ?? Android.App.Application.Context;
+            TiktokStreakSaver.Platforms.Android.StreakScheduler.ScheduleNextRun(ctx, true);
+        }
+#endif
     }
 }

@@ -218,7 +218,8 @@ public partial class DashboardPage : ContentPage
     private void UpdateStatus()
     {
         var isScheduled = _settingsService.IsScheduled();
-        var lastRun = _settingsService.GetLastRunTime();
+        var isScheduledFixed = _settingsService.IsFixedScheduled();
+        var lastRun = isScheduledFixed ? _settingsService.GetLastRunFixedTime() : _settingsService.GetLastRunTime();
         if (lastRun.HasValue)
         {
             var timeSince = DateTime.Now - lastRun.Value;
@@ -226,17 +227,36 @@ public partial class DashboardPage : ContentPage
             else if (timeSince.TotalHours < 24) LastRunLabel.Text = $"{(int)timeSince.TotalHours} hours ago";
             else LastRunLabel.Text = lastRun.Value.ToString("MMM dd, HH:mm");
         }
-        else LastRunLabel.Text = "Never";
+        else if (isScheduled)
+        {
+            var lastDate = lastRun.Value.Date;
+            var today = DateTime.Now.Date;
+            var yesterday = today.AddDays(-1);
+            LastRunLabel.Text = lastDate == today ? "Today" : lastDate == yesterday ? "Yesterday" : lastDate.ToString("d");
+        }
+        else
+        {
+            LastRunLabel.Text = "Never";
+        }
 
         if (isScheduled)
         {
-            var nextRun = _settingsService.GetNextRunTime();
+            var nextRun = _settingsService.GetNextRunTime(false);
             var timeUntil = nextRun - DateTime.Now;
             if (timeUntil.TotalMinutes < 60) NextRunLabel.Text = $"In {(int)timeUntil.TotalMinutes} minutes";
             else if (timeUntil.TotalHours < 24) NextRunLabel.Text = $"In {(int)timeUntil.TotalHours} hours";
             else NextRunLabel.Text = nextRun.ToString("MMM dd, HH:mm");
         }
-        else NextRunLabel.Text = "Not scheduled";
+        else if (isScheduledFixed)
+        {
+            var nextRun = _settingsService.GetNextRunTime(true);
+            var dayLabel = nextRun.Date == DateTime.Now.Date ? "Today" : "Tomorrow";
+            NextRunLabel.Text = $"{dayLabel} at {nextRun:HH:mm}";
+        }
+        else
+        {
+            NextRunLabel.Text = "Not scheduled";
+        }
 
         var history = _settingsService.GetRunHistory();
         var latestResult = history.FirstOrDefault();

@@ -658,28 +658,14 @@ public class StreakService : Service
                 _runResult.ErrorMessage = success ? null : message;
                 _settingsService.AddRunResult(_runResult);
 
-                if (_isBurstMode)
-                {
-                    if (_settingsService.IsScheduled())
-                    {
-                        _settingsService.SetBurstLastRunTime(DateTime.Now);
-                    }
-                    else if (_settingsService.IsFixedScheduled())
-                    {
-                        _settingsService.SetBurstLastRunFixedTime(DateTime.Now);
-                    }
-                }
-                else
-                {
-                    if (_settingsService.IsScheduled())
-                    {
-                        _settingsService.SetLastRunTime(DateTime.Now);
-                    }
-                    else if (_settingsService.IsFixedScheduled())
-                    {
-                        _settingsService.SetLastRunFixedTime(DateTime.Now);
-                    }
-                }
+               if (_settingsService.IsScheduled())
+               {
+                 _settingsService.SetLastRunTime(DateTime.Now);
+               }
+               else if (_settingsService.IsFixedScheduled())
+               {
+                 _settingsService.SetLastRunFixedTime(DateTime.Now);
+               }
             }
 
             // Show completion notification
